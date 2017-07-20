@@ -1,0 +1,28 @@
+def project = 'malaybiswal/icertportal'
+def branchApi = new URL("https://api.github.com/repos/${project}/branches")
+def branches = new groovy.json.JsonSlurper().parse(branchApi.newReader())
+branches.each {
+    def branchName = it.name
+    def jobName = "${project}-${branchName}".replaceAll('/','-')
+    job(jobName) {
+        scm {
+          git{
+            remote{
+              github("${project}")
+          refspec('+refs/pull/*:refs/remotes/origin/pr/*')
+        }
+          }
+        }
+      steps {
+        shell('#!/usr/bin/env bash[[ -s "/usr/local/rvm/scripts/rvm" ]] && source "/usr/local/rvm/scripts/rvm"export http_proxy=http://proxy.ord1.rackspace.com:3128export https_proxy=http://proxy.ord1.rackspace.com:3128rvm use jruby-1.7.24cd /var/lib/jenkins/workspace/CBUI_SESSION_DEV_CIecho ""echo "-------------------------"echo "Environment Info"echo "-------------------------"echo "ruby version : `ruby --version`"echo "npm  version : `npm --version`"echo "bower version: `bower --version`"echo "gulp version: `gulp --version`"echo ""echo "-------------------------"echo "Installing Ruby Dependencies"echo "-------------------------"bundle installecho ""echo "-------------------------"echo "Testing Ruby Code (Rspec)"echo "-------------------------"#bundle exec rspececho ""echo "-------------------------"echo "Packaging................"echo "-------------------------"rake package')
+    }
+      triggers {
+        githubPullRequest {
+            useGitHubHooks()
+            permitAll()
+            autoCloseFailedPullRequests()
+            displayBuildErrorsOnDownstreamBuilds()
+        }
+    }
+    }
+}
